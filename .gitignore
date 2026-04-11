@@ -2,3 +2,4 @@ memory/
 *.bak
 state
 sessions
+.jj/
