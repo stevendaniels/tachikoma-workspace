@@ -1,5 +1,5 @@
 ---
-name: jj-proposal
+name: create-proposal
 description: Use when adding or improving a workspace skill, modifying AGENT.md, SOUL.md, or USER.md, or archiving an applied proposal. Do not use for direct edits to /workspace/skills/ outside this workflow, HEARTBEAT.md, or .github/workflows/.
 ---
 
