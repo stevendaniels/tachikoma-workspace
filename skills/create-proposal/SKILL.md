@@ -13,7 +13,6 @@ GitHub pull requests. Human approval via GitHub PR is a hard architectural const
 - Adding a new `/proposals/skills/` SKILL.md
 - Improving an existing workspace skill
 - Modifying AGENT.md, USER.md, or SOUL.md
-- Running the weekly kaizen heartbeat (when explicitly instructed)
 - Steven explicitly asks for a proposal
 
 **Do NOT use for:**
@@ -22,39 +21,38 @@ GitHub pull requests. Human approval via GitHub PR is a hard architectural const
 - `.github/workflows/`
 - `/notes/skills/` — Steven manages those directly
 
-## Getting a GitHub Token
+## GitHub Token
 
-You do not hold GitHub credentials. Get a fresh token from the broker at the
-start of each proposal session. Do not cache or store it anywhere.
+Get a token from the broker via the Makefile. Tokens are cached at
+`/tmp/tachikoma-gh-token` for up to one hour.
 
 ```bash
-GITHUB_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | jq -r .token)
-export GITHUB_TOKEN
-export GH_TOKEN=$GITHUB_TOKEN
+cd /proposals
+eval $(make -f skills/create-proposal/scripts/Makefile set-token)
 ```
 
-Tokens expire in one hour. Get a fresh one per session.
+If a GitHub operation returns 401/403, force-refresh and retry:
+```bash
+rm /tmp/tachikoma-gh-token
+eval $(make -f skills/create-proposal/scripts/Makefile set-token)
+```
 
 ## Environment
 
 - Workspace at `/proposals` is a JJ repo colocated with git
 - Remote `origin` → `github.com/stevendaniels/tachikoma-workspace`
 - `main` is branch-protected — you cannot push to it directly
-- `jj`, `git`, `gh`, and `curl` are in your shell allowlist
+- `jj`, `git`, `gh`, `curl`, and `make` are in your shell allowlist
+
+See [references/jj-stacked-diffs.md](references/jj-stacked-diffs.md) for full JJ stacked-diff reference.
 
 ## Proposal Workflow
 
 ### Step 1: Check the Backlog
 
 ```bash
-export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | jq -r .token)
-
-gh pr list --repo stevendaniels/tachikoma-workspace
-jj log -r 'remote_bookmarks(exact:"origin/main")..heads()'
+eval $(make -f skills/create-proposal/scripts/Makefile set-token)
+make -f skills/create-proposal/scripts/Makefile check-backlog
 ```
 
 If 3 or more proposals are open and unreviewed, stop. Message Steven:
@@ -63,8 +61,9 @@ If 3 or more proposals are open and unreviewed, stop. Message Steven:
 ### Step 2: Fetch and Confirm Clean State
 
 ```bash
-cd /proposals
-jj git fetch --remote origin
+make -f skills/create-proposal/scripts/Makefile fetch
+jj rebase -d main@origin    # bring work current with main
+jj log -r 'main@origin..@'  # confirm stack position
 jj status
 ```
 
@@ -74,75 +73,61 @@ If the working copy has unexpected changes, investigate before continuing.
 
 ```bash
 # Standalone proposal
-jj new main@origin -m "proposal: <short imperative description>"
+jj new main@origin -m "proposal: <short imperative description>
 
-# Proposal dependent on a prior pending change
-jj new <parent-change-id> -m "proposal: <description>"
+Co-authored-by: Claude Sonnet 4.6 <noreply@anthropic.com>"
+
+# Dependent on a prior pending change
+jj new <parent-change-id> -m "proposal: <description>
+
+Co-authored-by: Claude Sonnet 4.6 <noreply@anthropic.com>"
 ```
 
 Use imperative mood. All proposal commits must have the `proposal:` prefix.
+Use your actual model name in the co-author trailer (e.g., Sonnet 4.6, Opus 4.6).
 
 ### Step 4: Make the Change
 
-Edit only the target file.
+Edit the target file using the **Edit tool** for existing files or **Write tool** for new files.
+Use Bash only to create new directories (`mkdir -p`).
 
 ```bash
-# Improve an existing skill
-nano /proposals/skills/some-skill/SKILL.md
-
-# Create a new skill
+# New skill directory
 mkdir -p /proposals/skills/new-skill
-nano /proposals/skills/new-skill/SKILL.md
+# Then use Write tool to create /proposals/skills/new-skill/SKILL.md
 ```
 
 New SKILL.md files require at minimum: `# Skill: <name>`, `## Purpose`, `## When to Use`, `## Instructions`, `## Constraints`.
 
-### Step 5: Save the Diff
+### Step 5: Push and Open the PR
 
 ```bash
-PROPOSAL_DATE=$(date +%Y-%m-%d)
-PROPOSAL_DESC="<hyphenated-description>"
-
-mkdir -p /proposals/proposals
-jj diff > /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
-cat /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
-```
-
-The diff file is committed with the change. It is the permanent audit record.
-
-### Step 6: Push and Open the PR
-
-```bash
-export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | jq -r .token)
-
-jj git push --change @
+make -f skills/create-proposal/scripts/Makefile push-change
 
 gh pr create \
-  --title "proposal: ${PROPOSAL_DESC}" \
+  --title "proposal: <desc>" \
   --body "## What changed
 $(jj diff --summary)
 
 ## Why
 [1–2 sentences on motivation]
 
-## Diff preview
-\`\`\`diff
-$(head -60 /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff)
-\`\`\`
-
-Full diff: \`proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff\`
-
 ---
 - [ ] Scoped to one file
 - [ ] No new permissions requested
-- [ ] Constraints section present (for new skills)
-- [ ] Diff applies cleanly to current main" \
+- [ ] Constraints section present (for new skills)" \
   --base main
 ```
 
-### Step 7: Message Steven
+For a stacked proposal dependent on another PR:
+```bash
+gh pr create \
+  --title "proposal: <desc>" \
+  --body "**Depends on:** #<parent-PR-number> — merge that first." \
+  --base <parent-bookmark-name>
+```
+
+### Step 6: Message Steven
 
 > **Proposal ready for review**
 >
@@ -153,51 +138,17 @@ Full diff: \`proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff\`
 >
 > Merge to approve. Comment to request changes. Close to reject.
 
-## Stacked Proposals
-
-When B cannot work without A being approved first:
-
-```bash
-jj new <change-id-of-A> -m "proposal: <description (requires A)>"
-# ... edit, save diff, push ...
-gh pr create \
-  --title "proposal: <description>" \
-  --body "**Depends on:** #<A's PR number> — merge that first." \
-  --base main
-```
-
-State the dependency clearly in the Telegram message.
-
-### Rebasing After Parent Was Revised
-
-```bash
-jj rebase -d <revised-parent-id> -r <child-id>
-export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | jq -r .token)
-jj git push --change <child-id>
-```
-
 ## After a Proposal Is Merged
 
-On the next interaction after Steven merges a PR:
-
 ```bash
-cd /proposals
-export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | jq -r .token)
+eval $(make -f skills/create-proposal/scripts/Makefile set-token)
+make -f skills/create-proposal/scripts/Makefile fetch
 
-jj git fetch --remote origin
-mkdir -p /proposals/applied-proposals
-mv /proposals/proposals/<date>-<desc>.diff /proposals/applied-proposals/
+jj new main@origin -m "chore: post-merge sync
 
-jj new main@origin -m "chore: archive applied proposal — <desc>"
-jj git push --change @
-gh pr create \
-  --title "chore: archive applied proposal — <desc>" \
-  --body "Moves applied diff to applied-proposals/ for audit trail." \
-  --base main
+Co-authored-by: Claude Sonnet 4.6 <noreply@anthropic.com>"
+make -f skills/create-proposal/scripts/Makefile push-change
+gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged proposal." --base main
 ```
 
 ## Constraints
@@ -208,21 +159,21 @@ gh pr create \
 4. Maximum 3 open proposals at once
 5. One logical change per PR
 6. Never request new GitHub permissions in a proposal
-7. Diff file is mandatory before any `gh pr create`
-8. Never self-merge
-9. Never store or log GitHub tokens — get a fresh one each session
+7. Never self-merge
+8. Never store or log GitHub tokens beyond the `/tmp/tachikoma-gh-token` cache
 
 ## Quick Reference
 
 | Action | Command |
 |--------|---------|
-| Get token | `export GH_TOKEN=$(curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" http://token-broker:9999/token \| jq -r .token)` |
-| New standalone proposal | `jj new main@origin -m "proposal: <desc>"` |
-| New dependent proposal | `jj new <parent-id> -m "proposal: <desc>"` |
-| Inspect change | `jj diff && jj status` |
-| Push and open PR | `jj git push --change @ && gh pr create --title "proposal: <desc>" --base main` |
+| Get/refresh token | `eval $(make -f skills/create-proposal/scripts/Makefile set-token)` |
+| Check backlog | `make -f skills/create-proposal/scripts/Makefile check-backlog` |
+| Fetch + rebase | `make -f skills/create-proposal/scripts/Makefile fetch && jj rebase -d main@origin` |
+| New standalone proposal | `jj new main@origin -m "proposal: <desc>\n\nCo-authored-by: ..."` |
+| New dependent proposal | `jj new <parent-id> -m "proposal: <desc>\n\nCo-authored-by: ..."` |
+| Push and open PR | `make -f skills/create-proposal/scripts/Makefile push-change && gh pr create ...` |
 | List open proposals | `gh pr list --repo stevendaniels/tachikoma-workspace` |
-| Rebase dependent | `jj rebase -d <new-parent-id> -r <child-id>` |
+| Rebase stack | `jj rebase -d main@origin -r 'main@origin..@'` |
 
 ## Failure Modes
 
@@ -230,17 +181,19 @@ gh pr create \
 
 **Broker unreachable:**
 ```bash
-curl -s http://token-broker:9999/token | head -3
+curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+  http://token-broker:9999/token | head -3
 ```
 If connection refused, the broker container is down. Report to Steven.
 
-**GitHub push rejected:** Token may have expired. Get a fresh one and retry once. If it fails again, report to Steven — do not attempt credential debugging.
+**GitHub push rejected:** Token may have expired. Remove the cache file and re-run `set-token`, then retry once. If it fails again, report to Steven.
 
 **Diff does not apply after main moved:**
 ```bash
-jj rebase -d main@origin -r @
-jj diff   # verify the rebased diff still makes sense
-jj git push --change @
+make -f skills/create-proposal/scripts/Makefile fetch
+jj rebase -d main@origin -r 'main@origin..@'
+jj diff   # verify rebased diff still makes sense
+make -f skills/create-proposal/scripts/Makefile push-change
 ```
 
 **Merge conflict after rebase:**
@@ -248,9 +201,6 @@ jj git push --change @
 jj status   # shows conflict markers
 # Resolve manually, then:
 jj describe
-jj git push --change @
+make -f skills/create-proposal/scripts/Makefile push-change
 ```
-If you cannot resolve cleanly, abandon and report:
-```bash
-jj abandon @
-```
+If you cannot resolve cleanly, abandon and report: `jj abandon @`
