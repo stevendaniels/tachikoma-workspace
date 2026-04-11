@@ -29,7 +29,7 @@ start of each proposal session. Do not cache or store it anywhere.
 
 ```bash
 GITHUB_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" \
+  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 export GITHUB_TOKEN
 export GH_TOKEN=$GITHUB_TOKEN
@@ -50,7 +50,7 @@ Tokens expire in one hour. Get a fresh one per session.
 
 ```bash
 export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" \
+  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 
 gh pr list --repo stevendaniels/tachikoma-workspace
@@ -114,7 +114,7 @@ The diff file is committed with the change. It is the permanent audit record.
 
 ```bash
 export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" \
+  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 
 jj git push --change @
@@ -173,7 +173,7 @@ State the dependency clearly in the Telegram message.
 ```bash
 jj rebase -d <revised-parent-id> -r <child-id>
 export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" \
+  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 jj git push --change <child-id>
 ```
@@ -185,7 +185,7 @@ On the next interaction after Steven merges a PR:
 ```bash
 cd /workspace
 export GH_TOKEN=$(curl -sf \
-  -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" \
+  -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 
 jj git fetch --remote origin
@@ -216,7 +216,7 @@ gh pr create \
 
 | Action | Command |
 |--------|---------|
-| Get token | `export GH_TOKEN=$(curl -sf -H "Authorization: Bearer $($GITHUB_TOKEN_BROKER_KEY)" http://token-broker:9999/token \| jq -r .token)` |
+| Get token | `export GH_TOKEN=$(curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" http://token-broker:9999/token \| jq -r .token)` |
 | New standalone proposal | `jj new main@origin -m "proposal: <desc>"` |
 | New dependent proposal | `jj new <parent-id> -m "proposal: <desc>"` |
 | Inspect change | `jj diff && jj status` |
