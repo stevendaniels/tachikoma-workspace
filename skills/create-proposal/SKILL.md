@@ -21,21 +21,6 @@ GitHub pull requests. Human approval via GitHub PR is a hard architectural const
 - `.github/workflows/`
 - `/notes/skills/` — Steven manages those directly
 
-## GitHub Token
-
-Get a token from the broker via the Makefile. Tokens are cached at
-`/tmp/tachikoma-gh-token` for up to one hour.
-
-```bash
-eval $(make set-token)
-```
-
-If a GitHub operation returns 401/403, force-refresh and retry:
-```bash
-rm /tmp/tachikoma-gh-token
-eval $(make set-token)
-```
-
 ## Environment
 
 - Workspace at `/proposals` is a JJ repo colocated with git
@@ -60,7 +45,6 @@ Do not proceed until your working directory is `/proposals`.
 ### Step 1: Check the Backlog
 
 ```bash
-eval $(make set-token)
 make check-backlog
 ```
 
@@ -150,7 +134,6 @@ gh pr create \
 ## After a Proposal Is Merged
 
 ```bash
-eval $(make set-token)
 make fetch
 
 jj new main@origin -m "chore: post-merge sync
@@ -169,13 +152,11 @@ gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged p
 5. One logical change per PR
 6. Never request new GitHub permissions in a proposal
 7. Never self-merge
-8. Never store or log GitHub tokens beyond the `/tmp/tachikoma-gh-token` cache
 
 ## Quick Reference
 
 | Action | Command |
 |--------|---------|
-| Get/refresh token | `eval $(make set-token)` |
 | Check backlog | `make check-backlog` |
 | Fetch + rebase | `make fetch && jj rebase -d main@origin` |
 | New standalone proposal | `jj new main@origin -m "proposal: <desc>\n\nCo-authored-by: ..."` |
@@ -186,16 +167,9 @@ gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged p
 
 ## Failure Modes
 
-**Broker returns 403:** API key mismatch. Do not retry. Report to Steven.
-
-**Broker unreachable:**
-```bash
-curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
-  http://token-broker:9999/token | head -3
-```
-If connection refused, the broker container is down. Report to Steven.
-
-**GitHub push rejected:** Token may have expired. Remove the cache file and re-run `set-token`, then retry once. If it fails again, report to Steven.
+**GitHub credentials fail (401/403):** The `gh` wrapper and git credential helper
+fetch tokens automatically. If they fail, the broker container may be down — report
+to Steven.
 
 **Diff does not apply after main moved:**
 ```bash
