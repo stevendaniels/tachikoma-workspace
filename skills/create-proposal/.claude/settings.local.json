@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/stevendaniels/src/tachikoma/workspaces status)",
+      "Bash(git -C /Users/stevendaniels/src/tachikoma/workspaces diff HEAD -- skills/create-proposal/)"
+    ]
+  }
+}
