@@ -1,6 +1,6 @@
 ---
 name: create-proposal
-description: Use when adding or improving a workspace skill, modifying AGENT.md, SOUL.md, or USER.md, or archiving an applied proposal. Do not use for direct edits to /workspace/skills/ outside this workflow, HEARTBEAT.md, or .github/workflows/.
+description: Use when adding or improving a workspace skill, modifying AGENT.md, SOUL.md, or USER.md, or archiving an applied proposal. Do not use for direct edits to /proposals/skills/ outside this workflow, HEARTBEAT.md, or .github/workflows/.
 ---
 
 # Create Proposal
@@ -10,7 +10,7 @@ GitHub pull requests. Human approval via GitHub PR is a hard architectural const
 
 ## When to Use
 
-- Adding a new `/workspace/skills/` SKILL.md
+- Adding a new `/proposals/skills/` SKILL.md
 - Improving an existing workspace skill
 - Modifying AGENT.md, USER.md, or SOUL.md
 - Running the weekly kaizen heartbeat (when explicitly instructed)
@@ -39,7 +39,7 @@ Tokens expire in one hour. Get a fresh one per session.
 
 ## Environment
 
-- Workspace at `/workspace` is a JJ repo colocated with git
+- Workspace at `/proposals` is a JJ repo colocated with git
 - Remote `origin` → `github.com/stevendaniels/tachikoma-workspace`
 - `main` is branch-protected — you cannot push to it directly
 - `jj`, `git`, `gh`, and `curl` are in your shell allowlist
@@ -63,7 +63,7 @@ If 3 or more proposals are open and unreviewed, stop. Message Steven:
 ### Step 2: Fetch and Confirm Clean State
 
 ```bash
-cd /workspace
+cd /proposals
 jj git fetch --remote origin
 jj status
 ```
@@ -88,11 +88,11 @@ Edit only the target file.
 
 ```bash
 # Improve an existing skill
-nano /workspace/skills/some-skill/SKILL.md
+nano /proposals/skills/some-skill/SKILL.md
 
 # Create a new skill
-mkdir -p /workspace/skills/new-skill
-nano /workspace/skills/new-skill/SKILL.md
+mkdir -p /proposals/skills/new-skill
+nano /proposals/skills/new-skill/SKILL.md
 ```
 
 New SKILL.md files require at minimum: `# Skill: <name>`, `## Purpose`, `## When to Use`, `## Instructions`, `## Constraints`.
@@ -103,9 +103,9 @@ New SKILL.md files require at minimum: `# Skill: <name>`, `## Purpose`, `## When
 PROPOSAL_DATE=$(date +%Y-%m-%d)
 PROPOSAL_DESC="<hyphenated-description>"
 
-mkdir -p /workspace/proposals
-jj diff > /workspace/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
-cat /workspace/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
+mkdir -p /proposals/proposals
+jj diff > /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
+cat /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff
 ```
 
 The diff file is committed with the change. It is the permanent audit record.
@@ -129,7 +129,7 @@ $(jj diff --summary)
 
 ## Diff preview
 \`\`\`diff
-$(head -60 /workspace/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff)
+$(head -60 /proposals/proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff)
 \`\`\`
 
 Full diff: \`proposals/${PROPOSAL_DATE}-${PROPOSAL_DESC}.diff\`
@@ -183,14 +183,14 @@ jj git push --change <child-id>
 On the next interaction after Steven merges a PR:
 
 ```bash
-cd /workspace
+cd /proposals
 export GH_TOKEN=$(curl -sf \
   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
   http://token-broker:9999/token | jq -r .token)
 
 jj git fetch --remote origin
-mkdir -p /workspace/applied-proposals
-mv /workspace/proposals/<date>-<desc>.diff /workspace/applied-proposals/
+mkdir -p /proposals/applied-proposals
+mv /proposals/proposals/<date>-<desc>.diff /proposals/applied-proposals/
 
 jj new main@origin -m "chore: archive applied proposal — <desc>"
 jj git push --change @
