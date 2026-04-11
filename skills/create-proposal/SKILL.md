@@ -27,14 +27,13 @@ Get a token from the broker via the Makefile. Tokens are cached at
 `/tmp/tachikoma-gh-token` for up to one hour.
 
 ```bash
-cd /proposals
-eval $(make -f skills/create-proposal/scripts/Makefile set-token)
+eval $(make set-token)
 ```
 
 If a GitHub operation returns 401/403, force-refresh and retry:
 ```bash
 rm /tmp/tachikoma-gh-token
-eval $(make -f skills/create-proposal/scripts/Makefile set-token)
+eval $(make set-token)
 ```
 
 ## Environment
@@ -48,11 +47,21 @@ See [references/jj-stacked-diffs.md](references/jj-stacked-diffs.md) for full JJ
 
 ## Proposal Workflow
 
+### Step 0: Navigate to the Proposals Repository
+
+All commands in this skill must run from `/proposals`. Do this first:
+
+```bash
+cd /proposals
+```
+
+Do not proceed until your working directory is `/proposals`.
+
 ### Step 1: Check the Backlog
 
 ```bash
-eval $(make -f skills/create-proposal/scripts/Makefile set-token)
-make -f skills/create-proposal/scripts/Makefile check-backlog
+eval $(make set-token)
+make check-backlog
 ```
 
 If 3 or more proposals are open and unreviewed, stop. Message Steven:
@@ -61,7 +70,7 @@ If 3 or more proposals are open and unreviewed, stop. Message Steven:
 ### Step 2: Fetch and Confirm Clean State
 
 ```bash
-make -f skills/create-proposal/scripts/Makefile fetch
+make fetch
 jj rebase -d main@origin    # bring work current with main
 jj log -r 'main@origin..@'  # confirm stack position
 jj status
@@ -102,7 +111,7 @@ New SKILL.md files require at minimum: `# Skill: <name>`, `## Purpose`, `## When
 ### Step 5: Push and Open the PR
 
 ```bash
-make -f skills/create-proposal/scripts/Makefile push-change
+make push-change
 
 gh pr create \
   --title "proposal: <desc>" \
@@ -141,13 +150,13 @@ gh pr create \
 ## After a Proposal Is Merged
 
 ```bash
-eval $(make -f skills/create-proposal/scripts/Makefile set-token)
-make -f skills/create-proposal/scripts/Makefile fetch
+eval $(make set-token)
+make fetch
 
 jj new main@origin -m "chore: post-merge sync
 
 Co-authored-by: Claude Sonnet 4.6 <noreply@anthropic.com>"
-make -f skills/create-proposal/scripts/Makefile push-change
+make push-change
 gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged proposal." --base main
 ```
 
@@ -166,12 +175,12 @@ gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged p
 
 | Action | Command |
 |--------|---------|
-| Get/refresh token | `eval $(make -f skills/create-proposal/scripts/Makefile set-token)` |
-| Check backlog | `make -f skills/create-proposal/scripts/Makefile check-backlog` |
-| Fetch + rebase | `make -f skills/create-proposal/scripts/Makefile fetch && jj rebase -d main@origin` |
+| Get/refresh token | `eval $(make set-token)` |
+| Check backlog | `make check-backlog` |
+| Fetch + rebase | `make fetch && jj rebase -d main@origin` |
 | New standalone proposal | `jj new main@origin -m "proposal: <desc>\n\nCo-authored-by: ..."` |
 | New dependent proposal | `jj new <parent-id> -m "proposal: <desc>\n\nCo-authored-by: ..."` |
-| Push and open PR | `make -f skills/create-proposal/scripts/Makefile push-change && gh pr create ...` |
+| Push and open PR | `make push-change && gh pr create ...` |
 | List open proposals | `gh pr list --repo stevendaniels/tachikoma-workspace` |
 | Rebase stack | `jj rebase -d main@origin -r 'main@origin..@'` |
 
@@ -190,10 +199,10 @@ If connection refused, the broker container is down. Report to Steven.
 
 **Diff does not apply after main moved:**
 ```bash
-make -f skills/create-proposal/scripts/Makefile fetch
+make fetch
 jj rebase -d main@origin -r 'main@origin..@'
 jj diff   # verify rebased diff still makes sense
-make -f skills/create-proposal/scripts/Makefile push-change
+make push-change
 ```
 
 **Merge conflict after rebase:**
@@ -201,6 +210,13 @@ make -f skills/create-proposal/scripts/Makefile push-change
 jj status   # shows conflict markers
 # Resolve manually, then:
 jj describe
-make -f skills/create-proposal/scripts/Makefile push-change
+make push-change
 ```
 If you cannot resolve cleanly, abandon and report: `jj abandon @`
+## Change Log (proposed)
+
+- Max unreviewed PRs: 10 (was 3)
+- Use conventional-commit style message in commit title, keep `proposal:` prefix
+- Each commit = 1 logical change (was "one logical change per PR")
+- Repo = same JJ work-tree, no separate clone needed
+- Standard `jj fetch && jj rebase -d main@origin` replaces `make fetch && jj rebase -d main@origin`
