@@ -3,7 +3,7 @@ name: create-proposal
 description: Use when adding or improving a workspace skill, modifying AGENT.md, SOUL.md, or USER.md, or archiving an applied proposal. Do not use for direct edits to /workspace/skills/ outside this workflow, HEARTBEAT.md, or .github/workflows/.
 ---
 
-# JJ Stacked Proposals
+# Create Proposal
 
 All changes to workspace skills and identity files flow through JJ stacks and
 GitHub pull requests. Human approval via GitHub PR is a hard architectural constraint.
