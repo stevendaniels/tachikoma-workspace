@@ -1,2 +1,4 @@
 memory/
 *.bak
+state
+sessions
