@@ -1,0 +1,104 @@
+#!/bin/bash
+# Post text from stdin to Slack as Tachikoma, verbatim (Slack mrkdwn), no model involved.
+#   tachikoma-post [--dry-run] [--force] DEST < text   post to the channel routed for DEST
+#   tachikoma-post --delete DEST TS                     remove a message posted to DEST
+# Routing lives in tachikoma-post.routes; the bot token never leaves this container.
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+ROUTES="$HERE/tachikoma-post.routes"
+SECURITY=${TACHIKOMA_SECURITY_YML:-/root/.picoclaw/.security.yml}
+STATE=${TACHIKOMA_POST_STATE:-/workspace/state/tachikoma-post.log}
+MAX_CHARS=3500
+LINK_ALLOW='https://mail\.google\.com/'
+
+die() { echo "tachikoma-post: $*" >&2; exit "${2:-1}"; }
+
+route() {
+  awk -v d="$1" '!/^[[:space:]]*#/ && $1 == d { print $2; exit }' "$ROUTES"
+}
+
+bot_token() {
+  local t
+  t=$(sed -n 's/^[[:space:]]*bot_token:[[:space:]]*["'"'"']\{0,1\}\(xoxb-[A-Za-z0-9-]*\).*/\1/p' "$SECURITY" | head -1)
+  [ -n "$t" ] || die "no Slack bot token in $SECURITY"
+  printf '%s' "$t"
+}
+
+slack() {  # slack METHOD [curl data args...]; token passed via a config fd, never argv
+  local method=$1; shift
+  curl -sS --max-time 30 -K <(printf 'header = "Authorization: Bearer %s"\n' "$(bot_token)") \
+    "https://slack.com/api/$method" "$@"
+}
+
+field() { sed -n "s/.*\"$1\":\"\\([^\"]*\\)\".*/\\1/p" | head -1; }
+
+# Keep Slack formatting, but only allow-listed <url|label> links; any other <...> (mentions like
+# <!channel>, <@U..>, <#C..>, disguised links) is escaped so it renders as plain text.
+sanitize() {
+  local s=$1 c
+  s=${s//$'\r'/}
+  for c in $'\u200b' $'\u200c' $'\u200d' $'\u200e' $'\u200f' $'\u202a' $'\u202b' $'\u202c' \
+           $'\u202d' $'\u202e' $'\u2066' $'\u2067' $'\u2068' $'\u2069' $'\ufeff'; do
+    s=${s//"$c"/}
+  done
+  s=$(printf '%s' "$s" | tr -d '\000-\010\013\014\016-\037\177')
+  printf '%s' "$s" | awk -v allow="$LINK_ALLOW" '
+    function esc(t) { gsub(/&/, "\\&amp;", t); gsub(/</, "\\&lt;", t); gsub(/>/, "\\&gt;", t); return t }
+    {
+      out = ""; line = $0
+      re = "<" allow "[^<>| ]*(\\|[^<>]*)?>"
+      while (match(line, re)) {
+        link = substr(line, RSTART, RLENGTH)
+        out = out esc(substr(line, 1, RSTART - 1)) "<" esc(substr(link, 2, RLENGTH - 2)) ">"
+        line = substr(line, RSTART + RLENGTH)
+      }
+      print out esc(line)
+    }'
+}
+
+dry=0 force=0 del=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    --dry-run) dry=1 ;;
+    --force) force=1 ;;
+    --delete) del=1 ;;
+    -h|--help) sed -n '2,5p' "$0"; exit 0 ;;
+    --*) die "unknown option $1" 2 ;;
+    *) break ;;
+  esac
+  shift
+done
+dest=${1:-}; [ -n "$dest" ] || die "usage: tachikoma-post [--dry-run] [--force] DEST < text" 2
+channel=$(route "$dest"); [ -n "$channel" ] || die "unknown destination '$dest' (see $ROUTES)" 2
+
+if [ "$del" = 1 ]; then
+  ts=${2:-}; [ -n "$ts" ] || die "usage: tachikoma-post --delete DEST TS" 2
+  resp=$(slack chat.delete --data-urlencode "channel=$channel" --data-urlencode "ts=$ts")
+  printf '%s' "$resp" | grep -q '"ok":true' || die "Slack chat.delete failed: $(printf '%s' "$resp" | field error)"
+  echo "deleted dest=$dest channel=$channel ts=$ts"
+  exit 0
+fi
+
+text=$(sanitize "$(cat)")
+[ -n "${text//[[:space:]]/}" ] || die "refusing to post empty text" 2
+[ "${#text}" -le "$MAX_CHARS" ] || die "text is ${#text} chars, cap is $MAX_CHARS" 2
+
+if [ "$dry" = 1 ]; then
+  printf 'dest=%s channel=%s chars=%s\n---\n%s\n' "$dest" "$channel" "${#text}" "$text"
+  exit 0
+fi
+
+sum=$(printf '%s\n%s' "$channel" "$text" | sha256sum | cut -c1-64)
+if [ "$force" = 0 ] && [ -f "$STATE" ] && awk -v d="$dest" -v s="$sum" '$2 == "dest="d { last = $NF } END { exit !(last == "sha="s) }' "$STATE"; then
+  echo "skipped: identical text already posted to $dest (use --force)"
+  exit 0
+fi
+
+resp=$(printf '%s' "$text" | slack chat.postMessage --data-urlencode "channel=$channel" \
+  --data-urlencode "text@-" --data "unfurl_links=false&unfurl_media=false")
+printf '%s' "$resp" | grep -q '"ok":true' || die "Slack chat.postMessage failed: $(printf '%s' "$resp" | field error)"
+ts=$(printf '%s' "$resp" | field ts)
+mkdir -p "$(dirname "$STATE")"
+printf '%s dest=%s channel=%s ts=%s chars=%s sha=%s\n' "$(date -u +%FT%TZ)" "$dest" "$channel" "$ts" "${#text}" "$sum" >> "$STATE"
+echo "posted dest=$dest channel=$channel ts=$ts"
