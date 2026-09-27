@@ -1,4 +1,6 @@
 # destination   channel_id    # channel
 email-digest    C0AS8TH1H37   # #tachikoma
 logs            C0AS5U26S75   # #tachikoma-logs
-pr-review       C0AS8TH1H37   # #tachikoma
+proposals       C0ASR6XM38R   # #tachikoma-proposals
+approvals       C0ASFTC9GP6   # #tachikoma-approvals
+pr-review       C0ASR6XM38R   # #tachikoma-proposals
