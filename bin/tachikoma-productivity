@@ -1,0 +1,39 @@
+#!/bin/bash
+# Hand Steven's calendar/reminder request to the productivity agent on the Mac.
+#   tachikoma-productivity [--dry-run] ORIGIN < message
+# ORIGIN is "<channel>:<chat_id>" from "## Current Session" (e.g. slack:C0AS8TH1H37/1727460000.000100).
+# The message is passed verbatim. The answer comes back later as a "[productivity] ..."
+# message in that same chat. Nothing here touches the calendar; the host decides.
+set -euo pipefail
+
+DISPATCH_DIR=${TACHIKOMA_PRODUCTIVITY_DISPATCH_DIR:-/dispatches}
+MAX_CHARS=2000
+
+die() { echo "tachikoma-productivity: $*" >&2; exit "${2:-1}"; }
+
+dry=0
+[ "${1:-}" = --dry-run ] && { dry=1; shift; }
+origin=${1:-}
+[ $# -eq 1 ] || die "usage: tachikoma-productivity [--dry-run] ORIGIN < message" 2
+[[ "$origin" =~ ^(slack|telegram):[A-Za-z0-9./-]{1,80}$ ]] || die "origin must be slack:<chat_id> or telegram:<chat_id>, got '$origin'" 2
+
+msg=$(cat)
+msg=${msg//$'\r'/}
+[ -n "${msg//[[:space:]]/}" ] || die "empty message" 2
+[ "${#msg}" -le "$MAX_CHARS" ] || die "message is ${#msg} chars (max $MAX_CHARS)" 2
+
+if [ "$dry" = 1 ]; then
+  printf 'origin=%s chars=%s\n' "$origin" "${#msg}"
+  printf '%s\n' "$msg"
+  exit 0
+fi
+
+tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
+printf '%s\n' "$msg" >"$tmp"
+agent-courier create \
+  --from tachikoma --to productivity \
+  --delivery-type exec --delivery-id productivity \
+  --type task --subject "productivity request" \
+  --reply-via chat --reply-delivery-id "$origin" \
+  --body-file "$tmp" --dispatch-dir "$DISPATCH_DIR" >/dev/null
+echo "sent to the productivity agent; its answer will arrive in this chat as a [productivity] message"
