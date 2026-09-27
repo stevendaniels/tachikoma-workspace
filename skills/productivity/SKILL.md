@@ -17,10 +17,8 @@ and relay the answer.
    resolve dates ("next Tuesday"), or add details.
 
    ```bash
-   printf '%s' "<Steven's message, verbatim>" | tachikoma-productivity "<origin>"
+   printf '%s' "<Steven's message, verbatim>" | /workspace/bin/tachikoma-productivity "<origin>"
    ```
-
-   (`tachikoma-productivity` is in `/workspace/bin/`.)
 3. Reply with one short line, e.g. `On it.` Do not say it's done. You don't know yet.
 
 If the command fails, tell Steven in one line that the request couldn't be sent and
