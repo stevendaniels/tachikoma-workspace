@@ -51,6 +51,8 @@ Show only proposals matching status:
 - `blocked` - Has blocking issues
 
 ## Implementation
+Script: `scripts/proposal-status.sh`
+
 Scan `/workspace/proposals/` directory structure, validate presence of required files (`SKILL.md` for skills), check merge readiness criteria, provide human-readable output with status indicators.
 
 ## Constraints
