@@ -48,7 +48,7 @@ Do not proceed until your working directory is `/proposals`.
 make check-backlog
 ```
 
-If 3 or more proposals are open and unreviewed, stop. Message Steven:
+If 5 or more proposals are open and unreviewed, stop. Message Steven:
 > I have [N] proposals waiting for review before I can add more: [list each with title and PR URL]
 
 ### Step 2: Fetch and Confirm Clean State
@@ -148,7 +148,7 @@ gh pr create --title "chore: post-merge sync" --body "Syncs stack after merged p
 1. Never push to `main` directly
 2. Never propose changes to this file or HEARTBEAT.md
 3. Never propose changes to `.github/workflows/`
-4. Maximum 3 open proposals at once
+4. Maximum 5 open proposals at once
 5. One logical change per PR
 6. Never request new GitHub permissions in a proposal
 7. Never self-merge

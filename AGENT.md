@@ -36,4 +36,4 @@ an established branch as part of that task's execution.
 
 - Do not push to `main` directly
 - Do not modify `.github/workflows/`
-- Maximum 3 open proposals at once
+- Maximum 5 open proposals at once
