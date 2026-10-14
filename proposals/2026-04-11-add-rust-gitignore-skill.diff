@@ -1,0 +1,232 @@
+Added regular file cron/jobs.json:
+        1: {
+        2:   "version": 1,
+        3:   "jobs": []
+        4: }
+Added regular file proposals/2024-04-11-notes-plan-scribe.diff:
+        1: Added regular file cron/jobs.json:
+        2:         1: {
+        3:         2:   "version": 1,
+        4:         3:   "jobs": []
+        5:         4: }
+        6: Added regular file proposals/2024-04-11-notes-plan-scribe.diff:
+        7:     (empty)
+        8: Added regular file skills/notes-plan-scribe/SKILL.md:
+        9:         1: ---
+       10:         2: name: notes-plan-scribe
+       11:         3: description: Use when you need to write planning notes or strategic thoughts to capture future work direction.
+       12:         4: ---
+       13:         5: 
+       14:         6: # Notes Plan Scribe
+       15:         7: 
+       16:         8: ## Overview
+       17:         9: A dedicated tool for capturing planning notes, strategic thoughts, and future work direction into a structured directory within the memory notes system.
+       18:        10: 
+       19:        11: ## Purpose
+       20:        12: The notes-plan-scribe skill creates dedicated planning documents that capture strategic thinking, architectural decisions, and long-term project directions that need to be recorded for future reference and evolution.
+       21:        13: 
+       22:        14: ## When to Use
+       23:        15: - When developing strategic plans or directions
+       24:        16: - When capturing long-term project thoughts
+       25:        17: - When documenting decision rationale
+       26:        18: - When outlining future work streams
+       27:        19: - When creating architectural vision documents
+       28:        20: - NOT for daily operational notes or routine documentation
+       29:        21: 
+       30:        22: ## Instructions
+       31:        23: 1. Create a dedicated plans/ directory in the memory notes structure if it doesn't exist
+       32:        24: 2. Generate timestamped files for each planning session in format: YYYY-MM-DD-plan-description.md
+       33:        25: 3. Structure each planning note with:
+       34:        26:    - Header with date, topic, and context
+       35:        27:    - Problem statement or opportunity
+       36:        28:    - Proposed approach or direction
+       37:        29:    - Key decisions and rationale
+       38:        30:    - Next steps or open questions
+       39:        31: 4. Support appending to existing plans when specified with --append flag
+       40:        32: 5. Include metadata tags for easy searching and reference
+       41:        33: 
+       42:        34: ## Usage Examples
+       43:        35: - `/skill notes-plan-scribe "Plan for Q3 architecture changes"` - Creates a new planning note
+       44:        36: - `/skill notes-plan-scribe --append "Additional constraint identified" - Appends to existing plan
+       45:        37: - `/skill notes-plan-scribe "Mobile app strategy 2024"` - Create long-term strategic document
+       46:        38: 
+       47:        39: ## Data Flow
+       48:        40: The skill will:
+       49:        41: 1. Parse the topic description from input
+       50:        42: 2. Check for existing related plans in memory/plans/
+       51:        43: 3. Create new file or append to existing based on flags
+       52:        44: 4. Generate structured markdown with planning template
+       53:        45: 5. Save to appropriate memory location for future reference
+       54:        46: 
+       55:        47: ## Common Mistakes
+       56:        48: - Don't use this for regular meeting notes or operational tracking
+       57:        49: - Don't overwrite existing plans without explicit intention
+       58:        50: - Don't use for quick notes or reminders - use daily notes instead
+       59:        51: - Don't create plans without clear strategic value or direction
+       60:        52: 
+       61:        53: ## Constraints
+       62:        54: - Plans must have long-term strategic value (6+ months relevance)
+       63:        55: - Must include clear decision rationale
+       64:        56: - Must be stored in dedicated plans/ directory
+       65:        57: - Must follow consistent naming convention
+       66:        58: - Cannot be used for operational documentation
+Added regular file proposals/2026-04-11-add-rust-gitignore-skill.diff:
+    (empty)
+Modified regular file skills/create-proposal/SKILL.md:
+    ...
+  30   30: ```bash
+  31   31: GITHUB_TOKEN=$(curl -sf \
+  32   32:   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+  33   33:   http://github-token-broker:9999/token | jq -r .token)
+  34   34: export GITHUB_TOKEN
+  35   35: export GH_TOKEN=$GITHUB_TOKEN
+  36   36: ```
+    ...
+  51   51: ```bash
+  52   52: export GH_TOKEN=$(curl -sf \
+  53   53:   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+  54   54:   http://github-token-broker:9999/token | jq -r .token)
+  55   55: 
+  56   56: gh pr list --repo stevendaniels/tachikoma-workspace
+  57   57: jj log -r 'remote_bookmarks(exact:"origin/main")..heads()'
+    ...
+ 115  115: ```bash
+ 116  116: export GH_TOKEN=$(curl -sf \
+ 117  117:   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+ 118  118:   http://github-token-broker:9999/token | jq -r .token)
+ 119  119: 
+ 120  120: jj git push --change @
+ 121  121: 
+    ...
+ 174  174: jj rebase -d <revised-parent-id> -r <child-id>
+ 175  175: export GH_TOKEN=$(curl -sf \
+ 176  176:   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+ 177  177:   http://github-token-broker:9999/token | jq -r .token)
+ 178  178: jj git push --change <child-id>
+ 179  179: ```
+ 180  180: 
+    ...
+ 186  186: cd /workspace
+ 187  187: export GH_TOKEN=$(curl -sf \
+ 188  188:   -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" \
+ 189  189:   http://github-token-broker:9999/token | jq -r .token)
+ 190  190: 
+ 191  191: jj git fetch --remote origin
+ 192  192: mkdir -p /workspace/applied-proposals
+    ...
+ 216  216: 
+ 217  217: | Action | Command |
+ 218  218: |--------|---------|
+ 219  219: | Get token | `export GH_TOKEN=$(curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN_BROKER_KEY}" http://github-token-broker:9999/token \| jq -r .token)` |
+ 220  220: | New standalone proposal | `jj new main@origin -m "proposal: <desc>"` |
+ 221  221: | New dependent proposal | `jj new <parent-id> -m "proposal: <desc>"` |
+ 222  222: | Inspect change | `jj diff && jj status` |
+    ...
+ 230  230: 
+ 231  231: **Broker unreachable:**
+ 232  232: ```bash
+ 233  233: curl -s http://github-token-broker:9999/token | head -3
+ 234  234: ```
+ 235  235: If connection refused, the broker container is down. Report to Steven.
+ 236  236: 
+    ...
+Added regular file skills/notes-plan-scribe/SKILL.md:
+        1: ---
+        2: name: notes-plan-scribe
+        3: description: Use when you need to write planning notes or strategic thoughts to capture future work direction.
+        4: ---
+        5: 
+        6: # Notes Plan Scribe
+        7: 
+        8: ## Overview
+        9: A dedicated tool for capturing planning notes, strategic thoughts, and future work direction into a structured directory within the memory notes system.
+       10: 
+       11: ## Purpose
+       12: The notes-plan-scribe skill creates dedicated planning documents that capture strategic thinking, architectural decisions, and long-term project directions that need to be recorded for future reference and evolution.
+       13: 
+       14: ## When to Use
+       15: - When developing strategic plans or directions
+       16: - When capturing long-term project thoughts
+       17: - When documenting decision rationale
+       18: - When outlining future work streams
+       19: - When creating architectural vision documents
+       20: - NOT for daily operational notes or routine documentation
+       21: 
+       22: ## Instructions
+       23: 1. Create a dedicated plans/ directory in the memory notes structure if it doesn't exist
+       24: 2. Generate timestamped files for each planning session in format: YYYY-MM-DD-plan-description.md
+       25: 3. Structure each planning note with:
+       26:    - Header with date, topic, and context
+       27:    - Problem statement or opportunity
+       28:    - Proposed approach or direction
+       29:    - Key decisions and rationale
+       30:    - Next steps or open questions
+       31: 4. Support appending to existing plans when specified with --append flag
+       32: 5. Include metadata tags for easy searching and reference
+       33: 
+       34: ## Usage Examples
+       35: - `/skill notes-plan-scribe "Plan for Q3 architecture changes"` - Creates a new planning note
+       36: - `/skill notes-plan-scribe --append "Additional constraint identified" - Appends to existing plan
+       37: - `/skill notes-plan-scribe "Mobile app strategy 2024"` - Create long-term strategic document
+       38: 
+       39: ## Data Flow
+       40: The skill will:
+       41: 1. Parse the topic description from input
+       42: 2. Check for existing related plans in memory/plans/
+       43: 3. Create new file or append to existing based on flags
+       44: 4. Generate structured markdown with planning template
+       45: 5. Save to appropriate memory location for future reference
+       46: 
+       47: ## Common Mistakes
+       48: - Don't use this for regular meeting notes or operational tracking
+       49: - Don't overwrite existing plans without explicit intention
+       50: - Don't use for quick notes or reminders - use daily notes instead
+       51: - Don't create plans without clear strategic value or direction
+       52: 
+       53: ## Constraints
+       54: - Plans must have long-term strategic value (6+ months relevance)
+       55: - Must include clear decision rationale
+       56: - Must be stored in dedicated plans/ directory
+       57: - Must follow consistent naming convention
+       58: - Cannot be used for operational documentation
+Added regular file skills/rust-gitignore/SKILL.md:
+        1: # Skill: rust-gitignore
+        2: 
+        3: ## Purpose
+        4: Provide a canonical, out-of-date Rust gitignore template based on GitHub’s official Rust.gitignore file—no thinking required.
+        5: 
+        6: ## When to Use
+        7: - Any time you’re asked for a `.gitignore` file for a Cargo / rustc project
+        8: - When a user wants to add Rust-specific rules to an existing `.gitignore`
+        9: - When you want to illustrate “best-practice” exclusions for Rust builds
+       10: 
+       11: ## Instructions
+       12: Call this skill and return the exact text body below; there is no decision making to do.
+       13: 
+       14: ```
+       15: # Rust
+       16: # - Cargo build artefacts
+       17: # - backup files generated by rustfmt
+       18: # - MSVC Windows debugging info
+       19: # - cargo-mutants output
+       20: 
+       21: debug
+       22: target/
+       23: **/*.rs.bk
+       24: *.pdb
+       25: **/mutants.out*/
+       26: ```
+       27: 
+       28: **Optional but often useful:** ignore IDE temp files (`.idea/`, `.vscode/`) and lockfiles for *libraries* only:
+       29: 
+       30: ```gitignore
+       31: # uncomment if you're writing a **library** crate and don't want to commit lockfiles
+       32: # Cargo.lock
+       33: ```
+       34: 
+       35: *For executables/default bin projects, Cargo.lock should remain under version control.*
+       36: 
+       37: ## Constraints
+       38: - Never remove core entries (`debug`, `target/`, `**/*.rs.bk`, `*.pdb`, `**/mutants.out*/`)—they’re included because every team that touched Rust has agreed they belong
+       39: - Adjust only the cosmetic comment block if you need to keep it short/inline
+       40: - Do not ship a template that blindly deletes `Cargo.lock`; supply both variants as comments if necessary
